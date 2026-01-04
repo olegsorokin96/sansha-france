@@ -1,0 +1,747 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="ir_attachment_import_transfer_product" model="ir.attachment">
+            <field name="name">magento_product_export.csv</field>
+            <field name="datas" type="base64"
+                   file="odoo_magento2_ept/data/magento_product_export.csv"/>
+            <field name="res_model">magento.import.export.ept</field>
+            <field name="public">True</field>
+        </record>
+        <record id="view_magento_import_export_operation" model="ir.ui.view">
+            <field name="name">Magento Opration</field>
+            <field name="model">magento.import.export.ept</field>
+            <field name="arch" type="xml">
+                <form>
+                    <sheet>
+                        <group>
+                            <group>
+                                <field name="magento_instance_id"
+                                       options="{'no_create':True,'no_create_edit': True,'no_open': True}"
+                                       required="1"/>
+                            </group>
+                            <group>
+                                <field name="operations" placeholder="Select Operation" required="1"/>
+                            </group>
+                        </group>
+                        <div name="msg_opr_main">
+                            <div invisible="operations != 'import_product_categories'">
+                                <p class="alert alert-warning" role="alert">
+                                    <b>
+                                        <u>
+                                            <h3 style="font-weight:bold;color:#7d5a29">Note :
+                                            </h3>
+                                        </u>
+                                        <ol>
+                                            <li>
+                                                This Operation imports all your Magento Instance’s
+                                                categories and creates the Magento Categories record
+                                                in the Magento Layer.
+                                            </li>
+                                            <li>
+                                                You can check all those categories recorded under the
+                                                (Magento > Products > Product Categories).
+                                            </li>
+                                            <li>
+                                                For more details please check
+                                                <a href='https://docs.emiprotechnologies.com/odoo-magento2-connector/v15/import-export-operations/import-categories.html'
+                                                   target="_blank">
+                                                    User Guide
+                                                </a>
+                                            </li>
+                                        </ol>
+                                    </b>
+                                </p>
+                            </div>
+                            <div invisible="operations != 'import_product_taxclass'">
+                                <p class="alert alert-warning" role="alert">
+                                    <b>
+                                        <u>
+                                            <h3 style="font-weight:bold;color:#7d5a29">Note :
+                                            </h3>
+                                        </u>
+                                        <ol>
+                                            <li>
+                                                Magento’s Tax Class is imported from magento to odoo.
+                                            </li>
+                                            <li>
+                                                All Tax Class data will list under the Magento > Catalog > Tax Class.
+                                            </li>
+                                            <li>
+                                                For more details please check
+                                                <a href='https://docs.emiprotechnologies.com/odoo-magento2-connector/v15/import-export-operations/import-product-taxclass.html'
+                                                   target="_blank">
+                                                    User Guide
+                                                </a>
+                                            </li>
+                                        </ol>
+                                    </b>
+                                </p>
+                            </div>
+                            <div invisible="operations != 'import_product_attributes'">
+                                <p class="alert alert-warning" role="alert">
+                                    <b>
+                                        <u>
+                                            <h3 style="font-weight:bold;color:#7d5a29">Note :
+                                            </h3>
+                                        </u>
+                                        <ol>
+                                            <li>
+                                                Import Attribute group, Attribute Set and Attribute options and values
+                                                By performing this operation.
+                                            </li>
+                                            <li>
+                                                All Attribute Set data will list under the Magento > Products >
+                                                Attribute Sets.
+                                            </li>
+                                            <li>
+                                                All Attribute Group data will list under the Magento > Products >
+                                                Attribute Groups.
+                                            </li>
+                                            <li>
+                                                All Attribute options and Attribute option values data will list under
+                                                the Magento > Products > Product Attributes.
+                                            </li>
+                                            <li>
+                                                For more details please check
+                                                <a href='https://docs.emiprotechnologies.com/odoo-magento2-connector/v15/import-export-operations/import-attributes.html'
+                                                   target="_blank">
+                                                    User Guide
+                                                </a>
+                                            </li>
+                                        </ol>
+                                    </b>
+                                </p>
+                            </div>
+                            <div invisible="operations != 'import_simple_products'">
+                                <p class="alert alert-warning" role="alert">
+                                    <b>
+                                        <u>
+                                            <h3 style="font-weight:bold;color:#7d5a29">Note :
+                                            </h3>
+                                        </u>
+                                        <ol>
+                                            <li>
+                                                Sync simple product starts fetching product data from
+                                                Magento store and will
+                                                just add that data in Product Queue for processing.
+                                                (Magento &gt; Logs &gt; Products Queue)
+                                            </li>
+                                            <li>
+                                                A Scheduled/Cron Job, running in background will
+                                                start processing Queues
+                                                one by one.
+                                            </li>
+                                            <li>
+                                                It will fetch the products for the specified range
+                                                of Create/Update
+                                                Date in 'From Date' and 'To Date' fields below.
+                                            </li>
+                                            <li>
+                                                The default value for 'From date' will be set 10 days before,
+                                                'To Date' will be current date and time.
+                                            </li>
+                                            <li>
+                                                For more details please check
+                                                <a href='https://docs.emiprotechnologies.com/odoo-magento2-connector/v15/import-export-operations/import-products.html'
+                                                   target="_blank">
+                                                    User Guide
+                                                </a>
+                                            </li>
+                                        </ol>
+                                    </b>
+                                </p>
+                            </div>
+                            <div invisible="operations != 'import_configurable_products'">
+                                <p class="alert alert-warning" role="alert">
+                                    <b>
+                                        <u>
+                                            <h3 style="font-weight:bold;color:#7d5a29">Note :
+                                            </h3>
+                                        </u>
+                                        <ol>
+                                            <li>
+                                                Sync Configurable product starts fetching product data from
+                                                Magento store and will
+                                                just add that data in Product Queue for processing.
+                                                (Magento &gt; Logs &gt; Products Queue)
+                                            </li>
+                                            <li>
+                                                A Scheduled/Cron Job, running in background will
+                                                start processing Queues
+                                                one by one.
+                                            </li>
+                                            <li>
+                                                It will fetch the products for the specified range
+                                                of Create/Update
+                                                Date in 'From Date' and 'To Date' fields below.
+                                            </li>
+                                            <li>
+                                                The default value for 'From date' will be set 10 days before, 'To Date'
+                                                will be current date
+                                                and time.
+                                            </li>
+                                            <li>
+                                                For more details please check
+                                                <a href='https://docs.emiprotechnologies.com/odoo-magento2-connector/v15/import-export-operations/import-products.html'
+                                                   target="_blank">
+                                                    User Guide
+                                                </a>
+                                            </li>
+                                        </ol>
+                                    </b>
+                                </p>
+                            </div>
+                            <div invisible="operations != 'import_customer'">
+                                <p colspan="2" class="alert alert-warning" role="alert">
+                                    <b>
+                                        <u>
+                                            <h3 style="font-weight:bold;color:#7d5a29">Note :</h3>
+                                        </u>
+                                        <ol>
+                                            <li>
+                                                Import customers starts fetching customers data from
+                                                Magento store
+                                                and will just add that data in Customer Queue for
+                                                processing.
+                                                (Magento &gt; Logs &gt; Customers Queue)
+                                            </li>
+                                            <li>
+                                                A Scheduled/Cron Job, running in background will
+                                                start processing
+                                                Queues one by one.
+                                            </li>
+                                            <li>
+                                                It fetches only those Customers which are updated
+                                                in last 10 days date of this operation.
+                                            </li>
+                                            <li>
+                                                You can find the details of last 10 days of this
+                                                operation under a
+                                                particular instance.
+                                            </li>
+                                            <li>
+                                                For more details please check
+                                                <a href='https://docs.emiprotechnologies.com/odoo-magento2-connector/v15/import-export-operations/import-customers.html'
+                                                   target="_blank">
+                                                    User Guide
+                                                </a>
+                                            </li>
+                                        </ol>
+                                    </b>
+                                </p>
+                            </div>
+                            <div invisible="operations != 'import_ship_sale_order'">
+                                <p colspan="2" class="alert alert-warning" role="alert">
+                                    <b>
+                                        <u>
+                                            <h3 style="font-weight:bold;color:#7d5a29">Note :
+                                            </h3>
+                                        </u>
+                                        <ol>
+                                            <li>
+                                                It will start fetching Shipped Order data from Magento store
+                                                and will just add
+                                                that data in Order Queue for processing. (Magento
+                                                &gt; Logs &gt; Orders Queue)
+                                            </li>
+                                            <li>
+                                                It will fetch the orders for the dates specified in
+                                                'From Date' and
+                                                'To Date' fields below.
+                                            </li>
+                                            <li>
+                                                For more details please check
+                                                <a href='https://docs.emiprotechnologies.com/odoo-magento2-connector/v15/import-export-operations/import-sale-order.html'
+                                                   target="_blank">
+                                                    User Guide
+                                                </a>
+                                            </li>
+                                        </ol>
+                                    </b>
+                                </p>
+                            </div>
+                            <div invisible="operations != 'import_unship_sale_order'">
+                                <p colspan="2" class="alert alert-warning" role="alert">
+                                    <b>
+                                        <u>
+                                            <h3 style="font-weight:bold;color:#7d5a29">Note :
+                                            </h3>
+                                        </u>
+                                        <ol>
+                                            <li>
+                                                It will start fetching Unshipped Order data from Magento store
+                                                and will just add
+                                                that data in Order Queue for processing. (Magento
+                                                &gt; Logs &gt; Orders Queue)
+                                            </li>
+                                            <li>
+                                                It will fetch the orders for the dates specified in
+                                                'From Date' and
+                                                'To Date' fields below.
+                                            </li>
+                                            <li>
+                                                For more details please check
+                                                <a href='https://docs.emiprotechnologies.com/odoo-magento2-connector/v15/import-export-operations/import-sale-order.html'
+                                                   target="_blank">
+                                                    User Guide
+                                                </a>
+                                            </li>
+                                        </ol>
+                                    </b>
+                                </p>
+                            </div>
+                            <div invisible="operations != 'import_cancel_orders'">
+                                <p colspan="2" class="alert alert-warning" role="alert">
+                                    <b>
+                                        <u>
+                                            <h3 style="font-weight:bold;color:#7d5a29">Note :
+                                            </h3>
+                                        </u>
+                                        <ol>
+                                            <li>
+                                                It will start fetching Cancel Order data from Magento store
+                                                and will cancel imported orders if imported orders are canceled on
+                                                Magento store.
+                                            </li>
+                                            <li>
+                                                It will fetch the cancel orders for the dates specified in
+                                                'From Date' and 'To Date' fields below.
+                                            </li>
+                                            <li>
+                                                For more details please check
+                                                <a href='https://docs.emiprotechnologies.com/odoo-magento2-connector/v15/import-export-operations.html'
+                                                   target="_blank">
+                                                    User Guide
+                                                </a>
+                                            </li>
+                                        </ol>
+                                    </b>
+                                </p>
+                            </div>
+                            <div invisible="operations != 'import_specific_order'">
+                                <p colspan="2" class="alert alert-warning" role="alert">
+                                    <b>
+                                        <u>
+                                            <h3 style="font-weight:bold;color:#7d5a29">Note :
+                                            </h3>
+                                        </u>
+                                        <ol>
+                                            <li>
+                                                Sync order starts fetching order data from
+                                                Magento store based on
+                                                defined Magento order reference and will just
+                                                add that data in
+                                                Order Queue and also process it.
+                                            </li>
+                                            <li>
+                                                Please define Magento order reference with
+                                                comma separated values
+                                                without any write quotes.
+                                            </li>
+                                            <li>
+                                                Example of define Magento order reference's:
+                                                000000021,000000022,000000023,000000024
+                                            </li>
+                                            <li>
+                                                For more details please check
+                                                <a href='https://docs.emiprotechnologies.com/odoo-magento2-connector/v15/import-export-operations.html'
+                                                   target="_blank">
+                                                    User Guide
+                                                </a>
+                                            </li>
+                                        </ol>
+                                    </b>
+                                </p>
+                            </div>
+                            <div invisible="operations != 'import_specific_product'">
+                                <p colspan="2" class="alert alert-warning" role="alert">
+                                    <b>
+                                        <u>
+                                            <h3 style="font-weight:bold;color:#7d5a29">Note :
+                                            </h3>
+                                        </u>
+                                        <ol>
+                                            <li>
+                                                Sync product starts fetching product data from
+                                                Magento store based on
+                                                defined Magento product sku and will just
+                                                add that data in
+                                                Product Queue and also process it.
+                                            </li>
+                                            <li>
+                                                Please define Magento product sku with
+                                                comma separated values
+                                                without any write quotes.
+                                            </li>
+                                            <li>
+                                                Example of define Magento product sku's:
+                                                24-MB04,24-MB05,24-MB06,24-MB07
+                                            </li>
+                                            <li>
+                                                For more details please check
+                                                <a href='https://docs.emiprotechnologies.com/odoo-magento2-connector/v15/import-export-operations.html'
+                                                   target="_blank">
+                                                    User Guide
+                                                </a>
+                                            </li>
+                                        </ol>
+                                    </b>
+                                </p>
+                            </div>
+                            <div invisible="operations != 'export_shipment_information'">
+                                <p colspan="2" class="alert alert-warning" role="alert">
+                                    <b>
+                                        <u>
+                                            <h3 style="font-weight:bold;color:#7d5a29">Note :
+                                            </h3>
+                                        </u>
+                                        <ol>
+                                            <li>
+                                                The Update Order Shipping Status allows you to
+                                                update order fulfillment and tracking reference
+                                                details to Magento store.
+                                            </li>
+                                            <li>
+                                                For more details please check
+                                                <a href='https://docs.emiprotechnologies.com/odoo-magento2-connector/v15/import-export-operations/export-shipment-information.html'
+                                                   target="_blank">
+                                                    User Guide
+                                                </a>
+                                            </li>
+                                        </ol>
+                                    </b>
+                                </p>
+                            </div>
+                            <div invisible="operations != 'export_invoice_information'">
+                                <p colspan="2" class="alert alert-warning" role="alert">
+                                    <b>
+                                        <u>
+                                            <h3 style="font-weight:bold;color:#7d5a29">Note :
+                                            </h3>
+                                        </u>
+                                        <ol>
+                                            <li>
+                                                The Update Order Invoice Information to Magento store.
+                                            </li>
+                                            <li>
+                                                For more details please check
+                                                <a href='https://docs.emiprotechnologies.com/odoo-magento2-connector/v15/import-export-operations/export-invoice-information.html'
+                                                   target="_blank">
+                                                    User Guide
+                                                </a>
+                                            </li>
+                                        </ol>
+                                    </b>
+                                </p>
+                            </div>
+                            <div invisible="operations != 'export_product_stock'">
+                                <p colspan="2" class="alert alert-warning" role="alert">
+                                    <b>
+                                        <u>
+                                            <h3 style="font-weight:bold;color:#7d5a29">Note :
+                                            </h3>
+                                        </u>
+                                        <ol>
+                                            <li>
+                                                Export stock allows to export product stock to
+                                                Magento store for
+                                                configured Magento Locations, for a given instance
+                                            </li>
+                                            <li>
+                                                Stock will be exported from warehouses as per the
+                                                configuration
+                                                under Magento > Configuration > Magento Inventory Locations >
+                                                Export Stock Warehouse.
+                                            </li>
+                                            <li>
+                                                It will export stock of only those products
+                                                which are
+                                                already synchronized with Magento.
+                                            </li>
+                                            <li>
+                                                It will try to export stock of those products
+                                                whose stock
+                                                is updated since last execution of
+                                                this operation.
+                                            </li>
+                                            <li>
+                                                If last execution details are not available, it
+                                                will
+                                                consider those products whose stock is
+                                                updated since last 365
+                                                days.
+                                            </li>
+                                            <li>
+                                                For more details please check
+                                                <a href='https://docs.emiprotechnologies.com/odoo-magento2-connector/v15/import-export-operations/export-product-stock.html'
+                                                   target="_blank">
+                                                    User Guide
+                                                </a>
+                                            </li>
+                                        </ol>
+                                    </b>
+                                </p>
+                            </div>
+                            <div invisible="operations != 'import_product_stock'">
+                                <p colspan="2" class="alert alert-warning" role="alert">
+                                    <b>
+                                        <u>
+                                            <h3 style="font-weight:bold;color:#7d5a29">Note :
+                                            </h3>
+                                        </u>
+                                        <ol>
+                                            <li>
+                                                Import stock allows to import product stock from
+                                                Magento
+                                                store to Odoo.
+                                            </li>
+                                            <li>
+                                                Stock will be imported to warehouse as per the
+                                                configuration under
+                                                Magento > Configuration > Magento Inventory Locations >
+                                                Import Stock Warehouse?
+                                            </li>
+                                            <li>
+                                                This operation will generate Inventory
+                                                Adjustment record under Inventory >
+                                                Operations > Inventory Adjustments.
+                                            </li>
+                                            <li>
+                                                Stock will be applied automatically by enable Auto
+                                                apply inventory adjustment
+                                                configuration, Otherwise you need to process
+                                                inventory adjustment
+                                                transaction record manually to bring stock changes
+                                                effect.
+                                            </li>
+                                            <li>
+                                                For more details please check
+                                                <a href='https://docs.emiprotechnologies.com/odoo-magento2-connector/v15/import-export-operations/import-product-stock.html'
+                                                   target="_blank">
+                                                    User Guide
+                                                </a>
+                                            </li>
+                                        </ol>
+                                    </b>
+                                </p>
+                            </div>
+                            <div invisible="operations != 'map_products'">
+                                <p colspan="2" class="alert alert-warning" role="alert">
+                                    <b>
+                                        <u>
+                                            <h3 style="font-weight:bold;color:#7d5a29">Note :
+                                            </h3>
+                                        </u>
+                                        <ol>
+                                            <li>
+                                                This operation allows to import Odoo Products to
+                                                Magento layer.
+                                            </li>
+                                            <li>
+                                                You can export the products into csv from Sales >
+                                                Products >
+                                                Products. Select Multiple Products or Open a product
+                                                and click on
+                                                the 'Magento2 - Prepare Product for Export' action from Action
+                                                menu. Select
+                                                Export Method > Export in CSV file.
+                                            </li>
+
+                                            <li>
+                                                You can export the products into xlsx from Sales >
+                                                Products >
+                                                Products. Select Multiple Products or Open a product
+                                                and click on
+                                                the 'Magento2 - Prepare Product for Export' action from Action
+                                                menu. Select
+                                                Export Method > Export in XLSX file.
+                                            </li>
+                                            <li>
+                                                For more details please check
+                                                <a href='https://docs.emiprotechnologies.com/odoo-magento2-connector/v15/import-export-operations/map-products.html'
+                                                   target="_blank">
+                                                    User Guide
+                                                </a>
+                                            </li>
+                                        </ol>
+                                    </b>
+                                </p>
+                            </div>
+                        </div>
+                        <notebook
+                                invisible="operations not in ['import_specific_order','import_specific_product','import_configurable_products','import_simple_products', 'import_product_stock', 'import_customer','import_unship_sale_order','import_ship_sale_order','import_cancel_orders', 'map_products']">
+                            <page string='Sync Option'>
+                                <div class="row">
+                                    <div class='col-md-8'>
+                                        <group name="is_import_specific_sale_order" invisible="operations != 'import_specific_order'">
+                                            <field name="import_specific_sale_order" required="operations == 'import_specific_order'"/>
+                                        </group>
+                                        <group name="is_import_specific_product" invisible="operations != 'import_specific_product'">
+                                            <field name="import_specific_product" required="operations == 'import_specific_product'"/>
+                                        </group>
+                                        <group name="is_update_existing_product" invisible="operations not in ['import_configurable_products', 'import_simple_products','import_specific_product']">
+                                            <field name="do_not_update_existing_product" widget="boolean_toggle" required="operations in ['import_configurable_products', 'import_simple_products','import_specific_product']"/>
+                                        </group>
+                                        <group name="group_auto_validate"
+                                               invisible="operations not in ['import_product_stock']">
+                                            <field name="auto_validate_stock" widget="boolean_toggle"/>
+                                        </group>
+                                        <group string="Select Date Range For Import"
+                                               invisible="operations not in ['import_configurable_products', 'import_simple_products','import_customer','import_unship_sale_order','import_ship_sale_order','import_cancel_orders']"
+                                               class="w-100">
+                                            <label for="start_date" string="Date"/>
+                                            <div class="d-inline-block">
+                                                <field name="start_date" widget="daterange"
+                                                       required="operations in ['import_configurable_products', 'import_simple_products']"
+                                                       options="{'related_end_date': 'end_date'}"
+                                                       class="oe_inline"/>
+                                                To
+                                                <field name="end_date" widget="daterange"
+                                                       required="operations in ['import_configurable_products', 'import_simple_products']"
+                                                       options="{'related_start_date': 'start_date'}"
+                                                       class="oe_inline"/>
+                                            </div>
+                                        </group>
+                                        <group string="Mapping Magento Products Using CSV"
+                                               invisible="operations != 'map_products'">
+                                            <div>
+                                                <div invisible="operations != 'map_products'">
+                                                    <field name="file_name" invisible="1"/>
+                                                    <field name="datas" filename="file_name" class="oe_inline"/>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <button string="Download Sample Attachment"
+                                                        name="download_sample_attachment"
+                                                        type="object"/>
+                                            </div>
+                                        </group>
+                                    </div>
+                                </div>
+                            </page>
+                        </notebook>
+
+                        <p colspan="2" class="alert alert-warning" role="alert"
+                           invisible="operations != 'export_product_stock'">
+                            <div style="color:#ff0000; font-size:15px;">
+                                <b>Important Note:</b>
+                            </div>
+                            <div class="d-inline-block w-100">
+                                <div class="row">
+                                    <div class="col-11 p-0">
+                                        <ul>
+                                            <li>
+                                                By specifying the batch size, you can
+                                                determine how many stock items will be
+                                                exported together.
+                                            </li>
+                                            <li>
+                                                For Magento, exporting
+                                                maximum 300 products' stock will be possible
+                                                in a single request.
+                                            </li>
+                                            <li>
+                                                By default, Batch size value is 200. You can change it
+                                                from Instance -> Other Info tab.
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </p>
+                        <footer>
+                            <button name="execute" string="Execute" type="object"
+                                    class="oe_highlight"/>
+                            <button string="Cancel" special="cancel"/>
+                        </footer>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <record id="action_wizard_magento_import_export_operation" model="ir.actions.act_window">
+            <field name="name">Magento Operation</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="res_model">magento.import.export.ept</field>
+            <field name="view_mode">form</field>
+            <field name="target">new</field>
+        </record>
+
+        <record id="view_magento_process_import_export_from_more_ept" model="ir.ui.view">
+            <field name="name">Process Import/Export</field>
+            <field name="model">magento.import.export.ept</field>
+            <field name="priority">100</field>
+            <field name="arch" type="xml">
+                <form string="Import/Export">
+                    <group name="magento_export_products">
+                        <group>
+                            <field name="export_method" required="1"/>
+                            <field name="magento_instance_id"
+                                   options="{'no_create':True,'no_create_edit': True}" required="1"/>
+                        </group>
+                    </group>
+<!--                    <group>-->
+                        <div style="color:#000000">
+                            <p class="alert alert-warning" role="alert">
+                                <u>
+                                    <h3 style="font-weight:bold;color:#7d5a29">Note :</h3>
+                                </u>
+                                <b>
+                                    <ol>
+                                        <li>
+                                            Products without Internal Reference (SKU) will not
+                                            be export in Magento Product Layer.
+                                        </li>
+                                        <li>
+                                            You can import CSV file here: Magento =>
+                                            Operations
+                                            =>Map Products
+                                        </li>
+                                        <li>
+                                            Do not change the name of the Header fields of csv file
+                                        </li>
+                                        <li>
+                                            Only change the Lower case fields value as per your need
+                                        </li>
+                                    </ol>
+                                </b>
+                            </p>
+                        </div>
+<!--                    </group>-->
+                    <footer>
+                        <button string="Export Products" class="oe_highlight" type="object"
+                                name="prepare_product_for_export_in_magento"/>
+                        <button string="Cancel" class="oe_highlight" special="cancel"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+        <record id="action_wizard_magento_product_for_prepare" model="ir.actions.act_window">
+            <field name="name">Magento2 - Prepare Product for Export</field>
+            <field name="res_model">magento.import.export.ept</field>
+            <field name="binding_model_id" ref="product.model_product_template"/>
+            <field name="view_mode">form</field>
+            <field name="view_id" ref="view_magento_process_import_export_from_more_ept"/>
+            <field name="target">new</field>
+        </record>
+
+        <!-- Below action used to redirect operation wizard from the instance kanban view-->
+        <record id="action_wizard_magento_instance_import_export_operations"
+                model="ir.actions.act_window">
+            <field name="name">Magento Operations</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="res_model">magento.import.export.ept</field>
+            <field name="view_mode">form</field>
+            <field name="view_id"
+                   ref="odoo_magento2_ept.view_magento_import_export_operation"/>
+            <field name="target">new</field>
+        </record>
+
+        <menuitem id="operation_magento_parent_menu" parent="menu_magento_root"
+                  name="Operations" action="action_wizard_magento_import_export_operation"
+                  sequence="4"/>
+
+    </data>
+</odoo>
