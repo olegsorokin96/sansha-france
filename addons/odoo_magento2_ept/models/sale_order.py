@@ -341,7 +341,7 @@ class SaleOrder(models.Model):
             shipping_line = order_line.prepare_order_line_vals(item, {}, product, price, instance)
             shipping_line.update({'is_delivery': True})
             if item.get('shipping_tax'):
-                shipping_line.update({'tax_id': [(6, 0, item.get('shipping_tax'))]})
+                shipping_line.update({'tax_ids': [(6, 0, item.get('shipping_tax'))]})
             order_line.create(shipping_line)
         return True
 
@@ -405,7 +405,7 @@ class SaleOrder(models.Model):
             product = sale_order_id.magento_instance_id.discount_product_id or default_product
             line = order_line.prepare_order_line_vals(item, {}, product, price, instance)
             if item.get('discount_tax'):
-                line.update({'tax_id': [(6, 0, item.get('discount_tax'))]})
+                line.update({'tax_ids': [(6, 0, item.get('discount_tax'))]})
             order_line.create(line)
         return True
 

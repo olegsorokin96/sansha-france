@@ -160,7 +160,8 @@ class ProductProduct(models.Model):
         if mrp_module:
             qry = """select p.id as product_id from product_product as p
                     inner join mrp_bom as mb on mb.product_tmpl_id=p.product_tmpl_id
-                    and p.id in %s"""
+                    and p.id in %s
+                    WHERE mb.active = TRUE"""
             params = (product_ids,)
             self.env.cr.execute(qry, params)
             bom_product_ids = self.env.cr.dictfetchall()

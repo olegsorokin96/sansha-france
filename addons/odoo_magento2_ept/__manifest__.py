@@ -88,13 +88,13 @@
     # Odoo Store Specific
 
     'images': [
-        'static/description/Magneto-Odoo-Connector-V19--25-December.gif',
+        'static/description/main_screenshot_19.gif',
     ],
     'installable': True,
     'auto_install': False,
     'application': True,
     'live_test_url': 'https://www.emiprotechnologies.com/r/6X6',
-    'price': 339.20,
+    'price': 429.00,
     'currency': 'EUR',
 
 }

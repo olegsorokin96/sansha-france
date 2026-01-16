@@ -32,8 +32,8 @@ class ReturnPicking(models.TransientModel):
         for move in moves:
             if move.state == 'cancel':
                 continue
-            if move.scrapped:
-                continue
+            # if move.scrapped:
+            #     continue
             # if move.move_dest_ids:
             #     move_dest_exists = True
             product_return_moves_data = dict(product_return_moves_data_tmpl)
@@ -113,8 +113,8 @@ class ReturnPicking(models.TransientModel):
             subtype_xmlid='mail.mt_note',
         )
         returned_lines = 0
-        group = self.env["procurement.group"].create({"name": order.name, "sale_id": order.id,
-                                                      "partner_id": order.partner_id.id})
+        # group = self.env["procurement.group"].create({"name": order.name, "sale_id": order.id,
+        #                                               "partner_id": order.partner_id.id})
         for return_line in self.product_return_moves:
             if not return_line.move_id:
                 raise UserError(_("You have manually created product lines, please delete them to proceed."))
@@ -123,7 +123,7 @@ class ReturnPicking(models.TransientModel):
                 returned_lines += 1
                 vals = return_line._prepare_move_default_values(new_picking)
                 vals.update({"warehouse_id": order.warehouse_id.id,
-                             "group_id": group.id,
+                             # "group_id": group.id,
                              "to_refund": return_line.to_refund})
                 r = return_line.move_id.copy(vals)
                 vals = {}

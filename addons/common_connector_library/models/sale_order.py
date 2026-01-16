@@ -30,8 +30,9 @@ class SaleOrder(models.Model):
         :return:
         """
         super(SaleOrder, self)._compute_fiscal_position_id()
-        fiscal_position = self.get_fiscal_position_by_warehouse()
-        self.fiscal_position_id = fiscal_position
+        for rec in self:
+            fiscal_position = rec.get_fiscal_position_by_warehouse()
+            rec.fiscal_position_id = fiscal_position
 
     def get_fiscal_position_by_warehouse(self):
         """
