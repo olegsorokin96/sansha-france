@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="magento_process_common_log_line_view_tree" model="ir.ui.view">
+        <field name="name">Magento process log tree view</field>
+        <field name="model">common.log.lines.ept</field>
+        <field name="inherit_id" ref="common_connector_library.common_log_line_view_tree"/>
+        <field name="arch" type="xml">
+            <field name="model_id" position="before">
+                <field name="magento_instance_id"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="magento_process_common_log_line_view_form" model="ir.ui.view">
+        <field name="name">Magento Process log form view</field>
+        <field name="model">common.log.lines.ept</field>
+        <field name="inherit_id" ref="common_connector_library.common_log_line_view_form"/>
+        <field name="arch" type="xml">
+            <field name="model_id" position="before">
+                <field name="magento_instance_id"/>
+            </field>
+        </field>
+    </record>
+
+<!--    <record id="action_magento_process_log_ept" model="ir.actions.act_window">-->
+<!--        <field name="name">Magento Process Job Log</field>-->
+<!--        <field name="res_model">common.log.book.ept</field>-->
+<!--        <field name="view_id" ref="magento_process_log_ept_tree_view"/>-->
+<!--        <field name="domain">[('magento_instance_id','!=',False)]</field>-->
+<!--    </record>-->
+
+    <record id="action_magento_process_log_lines_ept" model="ir.actions.act_window">
+        <field name="name">Log Lines</field>
+        <field name="res_model">common.log.lines.ept</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('module', '=', 'magento_ept')]</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No mismatch log lines are there!
+            </p>
+            <p>If any import/export/update process has got issue, log lines will be shown here.</p>
+        </field>
+    </record>
+
+    <menuitem id="menu_magento_log" parent="menu_magento_root"
+              name="Logs" sequence="6"/>
+
+<!--    <menuitem id="menu_magento_process_log"-->
+<!--              parent="menu_magento_log" name="Log Book"-->
+<!--              action="odoo_magento2_ept.action_magento_process_log_ept"-->
+<!--              sequence="5"/>-->
+
+    <menuitem id="menu_magento_process_log_line"
+              parent="menu_magento_log" name="Log Lines"
+              action="odoo_magento2_ept.action_magento_process_log_lines_ept"
+              sequence="5"/>
+</odoo>
