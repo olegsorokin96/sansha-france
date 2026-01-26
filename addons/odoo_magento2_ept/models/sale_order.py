@@ -454,32 +454,16 @@ class SaleOrder(models.Model):
             item.update({'shipping_tax': tax_id_list})
         return True
 
-    def __process_order_workflow(self, item, log_line):
-        sale_workflow = self.env['sale.workflow.process.ept']
-        sale_order = item.get('sale_order_id')
-        # Changes On 04.12.2023 by Ketan Chauhan
-        # set and pass context in sale order self object to magento order status
-        # magento_order_status is used in new inherited "validate_and_paid_invoices_ept" method
-        # magento_order_status is used for by-pass invoice validate and invoice paid process...
-        # if magento order is pending
-        ctx = self.env.context.copy()
-        ctx.update({'is_invoice': item.get('extension_attributes').get('is_invoice')})
-        if item.get('status') == 'complete' or \
-                (item.get('status') == 'processing' and
-                 item.get('extension_attributes').get('is_shipment')):
-            sale_order.auto_workflow_process_id.with_context(ctx).shipped_order_workflow_ept(
-                sale_order.with_context(ctx))
-        else:
-            sale_workflow.with_context(ctx).auto_workflow_process_ept(
-                sale_order.auto_workflow_process_id.id, [sale_order.id])
-        if item.get('status') == 'complete' or \
-                (item.get('status') == 'processing' and
-                 item.get('extension_attributes').get('is_invoice')) and \
-                sale_order.invoice_ids:
-            # Here the magento order is complete state or
-            # processing state with invoice so invoice is already created
-            # So Make the Export invoice as true to hide Export invoice button from invoice.
-            sale_order.invoice_ids.write({'is_exported_to_magento': True})
+   def __process_order_workflow(self, item, log_line):
+    """
+    Magento orders are always imported as Quotation (draft).
+    Auto workflow is intentionally disabled.
+    """
+    _logger.info(
+        "Magento order %s imported as Quotation only (workflow skipped)",
+        item.get('increment_id')
+    )
+    return True
 
     def cancel_order_from_magento(self):
         """
