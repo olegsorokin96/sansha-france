@@ -15,36 +15,13 @@ class SaleOrderLine(models.Model):
     )
 
     # ============================================================
-    # MAIN ENTRY — ORDER LEVEL TAX DISTRIBUTION (WITH FALLBACK)
+    # MAIN ENTRY — LINE-BASED, STRICT MAGENTO PRICES (NO ZERO)
     # ============================================================
 
     def create_order_line(self, item, instance, log_line, line_id):
         order_lines = item.get('items') or []
         rounding = bool(instance.magento_tax_rounding_method == 'round_per_line')
 
-        # --- 1) ORDER HT (SOURCE OF TRUTH FROM MAGENTO) ---
-        if instance.is_order_base_currency:
-            order_ht = (
-                (item.get('base_grand_total') or 0.0)
-                - (item.get('base_tax_amount') or 0.0)
-            )
-        else:
-            order_ht = (
-                (item.get('grand_total') or 0.0)
-                - (item.get('tax_amount') or 0.0)
-            )
-
-        # --- 2) TOTAL TTC (WEIGHT FOR DISTRIBUTION, WITH FALLBACK) ---
-        total_ttc = 0.0
-        for l in order_lines:
-            if l.get('product_type') in ['configurable', 'bundle']:
-                continue
-            total_ttc += self._get_line_ttc(l)
-
-        if not total_ttc:
-            total_ttc = 1.0  # safety
-
-        # --- 3) CREATE ORDER LINES WITH DISTRIBUTED HT ---
         for line in order_lines:
             if line.get('product_type') in ['configurable', 'bundle']:
                 continue
@@ -52,11 +29,10 @@ class SaleOrderLine(models.Model):
             product = line.get('line_product')
             qty = float(line.get('qty_ordered') or 1.0)
 
-            line_ttc = self._get_line_ttc(line)
-            ratio = line_ttc / total_ttc
-
-            line_ht_total = order_ht * ratio
-            price_unit = (line_ht_total / qty) if qty else 0.0
+            # --------------------------------------------------
+            # STRICT PRICE RESOLUTION (NO 0.0 ALLOWED)
+            # --------------------------------------------------
+            price_unit = self._get_price_unit_from_magento(line, qty)
 
             customer_option = self._get_custom_option(item, line)
 
@@ -77,26 +53,33 @@ class SaleOrderLine(models.Model):
         return True
 
     # ============================================================
-    # LINE TTC FALLBACK LOGIC (CRITICAL)
+    # STRICT PRICE EXTRACTION (HT)
     # ============================================================
 
-    def _get_line_ttc(self, line):
-        qty = float(line.get('qty_ordered') or 1.0)
+    def _get_price_unit_from_magento(self, line, qty):
+        """
+        Always returns HT unit price.
+        Never returns 0.0.
+        Raises error if Magento data is broken.
+        """
 
-        # 1) Best case
-        if line.get('row_total_incl_tax'):
-            return line.get('row_total_incl_tax')
+        # 1) BEST: row_total (HT) / qty
+        if line.get('row_total') is not None and qty:
+            return float(line.get('row_total')) / qty
 
-        # 2) Price incl tax * qty
-        if line.get('price_incl_tax'):
-            return line.get('price_incl_tax') * qty
+        # 2) Fallback: unit price HT
+        if line.get('price') is not None:
+            return float(line.get('price'))
 
-        # 3) HT + tax
-        if line.get('row_total') and line.get('tax_amount'):
-            return line.get('row_total') + line.get('tax_amount')
+        # 3) LAST RESORT: price incl tax -> back to HT
+        if line.get('price_incl_tax') is not None:
+            tax_percent = float(line.get('tax_percent') or 0.0)
+            return float(line.get('price_incl_tax')) / (1 + tax_percent / 100.0)
 
-        # 4) Last fallback
-        return (line.get('price') or 0.0) * qty
+        # 4) HARD ERROR — NO SILENT FAILURES
+        raise ValueError(
+            f"Magento order line {line.get('item_id')} has no usable price data"
+        )
 
     # ============================================================
     # PRODUCT MATCHING
@@ -160,7 +143,7 @@ class SaleOrderLine(models.Model):
             'magento_sale_order_line_ref': order_line_ref,
         }
 
-        # TAXES — НЕ МЕНЯЕМ
+        # TAXES — from Magento
         if instance.magento_apply_tax_in_order == 'create_magento_tax':
             tax_ids = item.get(f'order_tax_{line.get("item_id")}')
             if tax_ids:
@@ -168,7 +151,7 @@ class SaleOrderLine(models.Model):
             else:
                 vals.update({'tax_ids': False})
 
-        # ANALYTIC ACCOUNT — НЕ МЕНЯЕМ
+        # ANALYTIC ACCOUNT — unchanged
         store_view = item.get('store_view')
         analytic_account = (
             instance.magento_analytic_account_id.id
