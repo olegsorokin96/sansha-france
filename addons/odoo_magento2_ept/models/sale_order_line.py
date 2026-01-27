@@ -9,8 +9,6 @@ _logger = logging.getLogger(__name__)
 class SaleOrderLine(models.Model):
     _inherit = 'sale.order.line'
 
-    magento_item_id = fields.Char(string='Magento Item ID')
-
     # ------------------------------------------------------------
     # PRICE HANDLING
     # ------------------------------------------------------------
