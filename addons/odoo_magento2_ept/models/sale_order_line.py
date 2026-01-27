@@ -5,6 +5,7 @@
 from odoo import models, fields, _
 import json
 
+
 class SaleOrderLine(models.Model):
     _inherit = 'sale.order.line'
 
@@ -14,19 +15,49 @@ class SaleOrderLine(models.Model):
     )
 
     # ============================================================
-    # MAIN ENTRY
+    # MAIN ENTRY — ORDER LEVEL TAX DISTRIBUTION
     # ============================================================
 
     def create_order_line(self, item, instance, log_line, line_id):
-        order_lines = item.get('items')
+        order_lines = item.get('items') or []
         rounding = bool(instance.magento_tax_rounding_method == 'round_per_line')
 
+        # --- 1) ORDER HT (SOURCE OF TRUTH FROM MAGENTO) ---
+        if instance.is_order_base_currency:
+            order_ht = (
+                (item.get('base_grand_total') or 0.0)
+                - (item.get('base_tax_amount') or 0.0)
+            )
+        else:
+            order_ht = (
+                (item.get('grand_total') or 0.0)
+                - (item.get('tax_amount') or 0.0)
+            )
+
+        # --- 2) TOTAL TTC (WEIGHT FOR DISTRIBUTION) ---
+        total_ttc = 0.0
+        for l in order_lines:
+            if l.get('product_type') in ['configurable', 'bundle']:
+                continue
+            total_ttc += (l.get('row_total_incl_tax') or 0.0)
+
+        if not total_ttc:
+            total_ttc = 1.0  # safety
+
+        # --- 3) CREATE ORDER LINES WITH DISTRIBUTED HT ---
         for line in order_lines:
             if line.get('product_type') in ['configurable', 'bundle']:
                 continue
 
             product = line.get('line_product')
-            price_unit = self._get_ht_unit_price_from_magento(line, instance)
+            qty = float(line.get('qty_ordered') or 1.0)
+
+            line_ttc = (line.get('row_total_incl_tax') or 0.0)
+            ratio = line_ttc / total_ttc
+
+            line_ht_total = order_ht * ratio
+            price_unit = (line_ht_total / qty) if qty else 0.0
+
             customer_option = self._get_custom_option(item, line)
 
             line_vals = self.with_context(
@@ -38,32 +69,12 @@ class SaleOrderLine(models.Model):
             order_line = self.create(line_vals)
             order_line.with_context(round=rounding)._compute_amount()
 
-            self._create_line_desc_note(customer_option, item.get('sale_order_id'))
+            self._create_line_desc_note(
+                customer_option,
+                item.get('sale_order_id')
+            )
 
         return True
-
-    # ============================================================
-    # PRICE LOGIC (HT ONLY – ODOO APPLIES TAX)
-    # ============================================================
-
-    def _get_ht_unit_price_from_magento(self, order_line, instance):
-        """
-        ALWAYS return HT unit price from Magento.
-        Odoo will apply VAT.
-        """
-        if instance.is_order_base_currency:
-            row_total = self._get_price_field(order_line, 'base_row_total')
-        else:
-            row_total = self._get_price_field(order_line, 'row_total')
-
-        qty = float(order_line.get('qty_ordered') or 1.0)
-        return (row_total / qty) if qty else 0.0
-
-    @staticmethod
-    def _get_price_field(item, field):
-        if "parent_item" in item:
-            return item.get('parent_item', {}).get(field, 0.0)
-        return item.get(field, 0.0)
 
     # ============================================================
     # PRODUCT MATCHING
@@ -92,6 +103,7 @@ class SaleOrderLine(models.Model):
                     message = _(
                         "Order %s skipped: product %s not found in Odoo."
                     ) % (items.get('increment_id'), product_sku)
+
                     log_line.create_common_log_line_ept(
                         message=message,
                         module='magento_ept',
@@ -126,7 +138,7 @@ class SaleOrderLine(models.Model):
             'magento_sale_order_line_ref': order_line_ref,
         }
 
-        # TAXES (unchanged – Odoo logic)
+        # TAXES — НЕ ТРОГАЕМ
         if instance.magento_apply_tax_in_order == 'create_magento_tax':
             tax_ids = item.get(f'order_tax_{line.get("item_id")}')
             if tax_ids:
@@ -134,7 +146,7 @@ class SaleOrderLine(models.Model):
             else:
                 vals.update({'tax_ids': False})
 
-        # ANALYTIC ACCOUNT (unchanged)
+        # ANALYTIC ACCOUNT — НЕ ТРОГАЕМ
         store_view = item.get('store_view')
         analytic_account = (
             instance.magento_analytic_account_id.id
