@@ -1,13 +1,10 @@
 # -*- coding: utf-8 -*-
 # See LICENSE file for full copyright and licensing details.
 """For Odoo Magento2 Connector Module"""
-
 from odoo import models, fields, api, _
 from datetime import datetime
-import json
-
 MAGENTO_DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
-
+import json
 
 class SaleOrderLine(models.Model):
     """
@@ -36,23 +33,18 @@ class SaleOrderLine(models.Model):
             self.__create_line_desc_note(customer_option, item.get('sale_order_id'))
         return True
 
-    # ===========================
-    # FIXED PRICE LOGIC (ONLY HERE)
-    # ===========================
     def __find_order_item_price(self, item, order_line, instance):
-        """
-        Always return UNIT PRICE EXCLUDING TAX.
-        Magento row_total is subtotal WITHOUT tax.
-        """
-        qty = float(order_line.get('qty_ordered') or 1.0)
-
-        # row_total is ALWAYS tax excluded in Magento
-        row_total = self.__get_price(order_line, 'row_total') or 0.0
-
-        if qty:
-            return row_total / qty
-
-        return 0.0
+        tax_type = item.get('website').tax_calculation_method
+        if tax_type == 'including_tax':
+            price = self.__get_price(order_line, 'base_price_incl_tax') if instance.is_order_base_currency else self.__get_price(
+                order_line, 'price_incl_tax')
+        else:
+            price = self.__get_price(order_line, 'base_price') if instance.is_order_base_currency else self.__get_price(
+                order_line, 'price')
+        original_price = self.__get_price(order_line, 'base_original_price') if instance.is_order_base_currency else self.__get_price(
+            order_line, 'original_price')
+        item_price = price if price != original_price else original_price
+        return item_price
 
     @staticmethod
     def __get_price(item, price):
@@ -92,28 +84,19 @@ class SaleOrderLine(models.Model):
                         message = _(f"""An order {items.get('increment_id')} was skipped because the ordered 
                                     product {product_sku} not exists in Odoo.""")
 
-                    log_line.create_common_log_line_ept(
-                        message=message,
-                        module='magento_ept',
-                        order_ref=items.get('increment_id'),
-                        magento_order_data_queue_line_id=line_id,
-                        model_name=self._name,
-                        magento_instance_id=instance.id
-                    )
+                    log_line.create_common_log_line_ept(message=message, module='magento_ept',
+                                                        order_ref=items.get('increment_id'),
+                                                        magento_order_data_queue_line_id=line_id, model_name=self._name,
+                                                        magento_instance_id=instance.id)
                     return False
                 if len(product_obj) > 1:
                     message = _(f"""
                     An order {items.get('increment_id')} was skipped because the ordered product {product_sku} 
                     exists multiple times in Odoo.
                     """)
-                    log_line.create_common_log_line_ept(
-                        message=message,
-                        module='magento_ept',
-                        order_ref=items.get('increment_id'),
-                        magento_order_data_queue_line_id=line_id,
-                        model_name=self._name,
-                        magento_instance_id=instance.id
-                    )
+                    log_line.create_common_log_line_ept(message=message, module='magento_ept', order_ref=items.get('increment_id'),
+                                                        magento_order_data_queue_line_id=line_id, model_name=self._name,
+                                                        magento_instance_id=instance.id)
                     return False
                 odoo_product = product_obj
             else:
@@ -147,7 +130,6 @@ class SaleOrderLine(models.Model):
         line_vals.update({
             'magento_sale_order_line_ref': order_line_ref,
         })
-
         if instance.magento_apply_tax_in_order == 'create_magento_tax':
             if item.get(f'order_tax_{line.get("item_id")}'):
                 line_vals.update({'tax_ids': [(6, 0, item.get(f'order_tax_{line.get("item_id")}'))]})
@@ -156,16 +138,60 @@ class SaleOrderLine(models.Model):
             else:
                 line_vals.update({'tax_ids': False})
 
+        # Changes by Lakhan Patidar for ticket : 34142 Solve issue with magento in odoo
         store_view = item.get('store_view')
+        # website_id = store_view.magento_website_id
         magento_account = instance.magento_analytic_account_id.id if instance.magento_analytic_account_id else False
         if not magento_account:
-            magento_account = (
-                store_view.magento_website_id.m_website_analytic_account_id.id
-                if store_view.magento_website_id.m_website_analytic_account_id else False
-            )
+            magento_account = store_view.magento_website_id.m_website_analytic_account_id.id if store_view.magento_website_id.m_website_analytic_account_id else False
         if magento_account:
-            line_vals.update({'analytic_distribution': {magento_account: 100}})
+            analytic_distribution_dict = {magento_account: 100}
+            line_vals.update({'analytic_distribution': analytic_distribution_dict})
+        # Changes over for ticket : 34142 Solve issue with magento in odoo
         return line_vals
+
+    def __find_sales_taxes(self, percent, tax_type, instance, apply_tax):
+        magento_tax = False
+        if apply_tax == "create_magento_tax":
+            account_tax_obj = self.env["account.tax"]
+            tax_included = (tax_type == 'including_tax')
+            if percent > 0.0:
+                title = '%s %% ' % percent
+                magento_tax = account_tax_obj.get_tax_from_rate(
+                    float(percent), title, tax_included)
+                if not magento_tax:
+                    tax_vals = self.prepare_tax_dict(title, percent, tax_included)
+                    tax_vals.update({
+                        'invoice_repartition_line_ids': [
+                            (6, 0, {
+                                'account_id': instance.magento_invoice_tax_account_id.id,
+                            })],
+                        'refund_repartition_line_ids': [
+                            (6, 0, {
+                                'account_id': instance.magento_credit_tax_account_id.id,
+                            })],
+                    })
+                    magento_tax = account_tax_obj.sudo().create(tax_vals)
+        return magento_tax
+
+    @staticmethod
+    def prepare_tax_dict(tax, instance):
+        tax_dict = {
+            'name': tax.get('tax_title'),
+            'description': tax.get('tax_title'),
+            'amount_type': 'percent',
+            'price_include': tax.get('tax_type'),
+            'amount': float(tax.get('tax_percent')),
+            'type_tax_use': 'sale',
+        }
+        if tax.get('line_tax') == 'order':
+            tax_dict.update({
+                'invoice_repartition_line_ids': [
+                    (6, 0, {'account_id': instance.magento_invoice_tax_account_id.id})],
+                'refund_repartition_line_ids': [
+                    (6, 0, {'account_id': instance.magento_credit_tax_account_id.id,})],
+            })
+        return tax_dict
 
     def __create_line_desc_note(self, description, sale_order):
         if description:
@@ -192,14 +218,14 @@ class SaleOrderLine(models.Model):
         }
 
         new_order_line = sale_order_line.new(order_line)
+        # new_order_line.product_id_change()
         new_order_line._compute_name()
         new_order_line._compute_tax_ids()
         new_order_line._onchange_product_id()
-        new_order_line._compute_customer_lead()
 
-        order_line = sale_order_line._convert_to_write(
-            {name: new_order_line[name] for name in new_order_line._cache}
-        )
+        # new_order_line._onchange_product_id_set_customer_lead()
+        new_order_line._compute_customer_lead()
+        order_line = sale_order_line._convert_to_write({name: new_order_line[name] for name in new_order_line._cache})
 
         order_line.update({
             'order_id': vals.get('order_id', False),

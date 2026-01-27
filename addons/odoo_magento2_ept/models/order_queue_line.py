@@ -80,6 +80,16 @@ class MagentoOrderDataQueueLineEpt(models.Model):
 
     def process_order_queue_line(self, line, log_line):
         item = json.loads(line.data)
+# --- FIX PRICE: force tax-included price from Magento ---
+for order_line in item.get('items', []):
+    qty = order_line.get('qty_ordered') or 1.0
+
+    # If Magento provides tax-included price, keep it
+    if order_line.get('price_incl_tax'):
+        order_line['price'] = order_line.get('price_incl_tax')
+    elif order_line.get('row_total_incl_tax') and qty:
+        order_line['price'] = order_line.get('row_total_incl_tax') / qty
+
         order_ref = item.get('increment_id')
         order = self.env['sale.order']
         instance = self.instance_id
