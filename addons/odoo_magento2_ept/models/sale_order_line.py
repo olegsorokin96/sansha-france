@@ -15,7 +15,7 @@ class SaleOrderLine(models.Model):
     )
 
     # ============================================================
-    # MAIN ENTRY — ORDER LEVEL TAX DISTRIBUTION
+    # MAIN ENTRY — ORDER LEVEL TAX DISTRIBUTION (WITH FALLBACK)
     # ============================================================
 
     def create_order_line(self, item, instance, log_line, line_id):
@@ -34,12 +34,12 @@ class SaleOrderLine(models.Model):
                 - (item.get('tax_amount') or 0.0)
             )
 
-        # --- 2) TOTAL TTC (WEIGHT FOR DISTRIBUTION) ---
+        # --- 2) TOTAL TTC (WEIGHT FOR DISTRIBUTION, WITH FALLBACK) ---
         total_ttc = 0.0
         for l in order_lines:
             if l.get('product_type') in ['configurable', 'bundle']:
                 continue
-            total_ttc += (l.get('row_total_incl_tax') or 0.0)
+            total_ttc += self._get_line_ttc(l)
 
         if not total_ttc:
             total_ttc = 1.0  # safety
@@ -52,7 +52,7 @@ class SaleOrderLine(models.Model):
             product = line.get('line_product')
             qty = float(line.get('qty_ordered') or 1.0)
 
-            line_ttc = (line.get('row_total_incl_tax') or 0.0)
+            line_ttc = self._get_line_ttc(line)
             ratio = line_ttc / total_ttc
 
             line_ht_total = order_ht * ratio
@@ -75,6 +75,28 @@ class SaleOrderLine(models.Model):
             )
 
         return True
+
+    # ============================================================
+    # LINE TTC FALLBACK LOGIC (CRITICAL)
+    # ============================================================
+
+    def _get_line_ttc(self, line):
+        qty = float(line.get('qty_ordered') or 1.0)
+
+        # 1) Best case
+        if line.get('row_total_incl_tax'):
+            return line.get('row_total_incl_tax')
+
+        # 2) Price incl tax * qty
+        if line.get('price_incl_tax'):
+            return line.get('price_incl_tax') * qty
+
+        # 3) HT + tax
+        if line.get('row_total') and line.get('tax_amount'):
+            return line.get('row_total') + line.get('tax_amount')
+
+        # 4) Last fallback
+        return (line.get('price') or 0.0) * qty
 
     # ============================================================
     # PRODUCT MATCHING
@@ -138,7 +160,7 @@ class SaleOrderLine(models.Model):
             'magento_sale_order_line_ref': order_line_ref,
         }
 
-        # TAXES — НЕ ТРОГАЕМ
+        # TAXES — НЕ МЕНЯЕМ
         if instance.magento_apply_tax_in_order == 'create_magento_tax':
             tax_ids = item.get(f'order_tax_{line.get("item_id")}')
             if tax_ids:
@@ -146,7 +168,7 @@ class SaleOrderLine(models.Model):
             else:
                 vals.update({'tax_ids': False})
 
-        # ANALYTIC ACCOUNT — НЕ ТРОГАЕМ
+        # ANALYTIC ACCOUNT — НЕ МЕНЯЕМ
         store_view = item.get('store_view')
         analytic_account = (
             instance.magento_analytic_account_id.id
@@ -192,3 +214,4 @@ class SaleOrderLine(models.Model):
                 'display_type': 'line_note',
                 'price_unit': 0.0,
             })
+
