@@ -340,7 +340,7 @@ class SaleOrder(models.Model):
             product = sale_order_id.magento_instance_id.shipping_product_id or default_product
             shipping_line = order_line.prepare_order_line_vals(item, {}, product, price, instance)
             shipping_line.update({'is_delivery': True})
-            if item.get('shipping_tax'):
+            if item.get('shipping_tax') and not tax_type:
                 shipping_line.update({'tax_ids': [(6, 0, item.get('shipping_tax'))]})
             order_line.create(shipping_line)
         return True
