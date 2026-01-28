@@ -35,6 +35,10 @@ class SaleOrderLine(models.Model):
 
     def __find_order_item_price(self, item, order_line, instance):
         tax_type = item.get('website').tax_calculation_method
+        row_total = self.__get_row_total(order_line, instance, tax_type)
+        if row_total:
+            qty = float(order_line.get('qty_ordered') or 1.0)
+            return row_total / qty
         if tax_type == 'including_tax':
             price = self.__get_price(order_line, 'base_price_incl_tax') if instance.is_order_base_currency else self.__get_price(
                 order_line, 'price_incl_tax')
@@ -49,6 +53,14 @@ class SaleOrderLine(models.Model):
     @staticmethod
     def __get_price(item, price):
         return item.get('parent_item').get(price) if "parent_item" in item else item.get(price)
+
+    @staticmethod
+    def __get_row_total(item, instance, tax_type):
+        if tax_type == 'including_tax':
+            total_key = 'base_row_total_incl_tax' if instance.is_order_base_currency else 'row_total_incl_tax'
+        else:
+            total_key = 'base_row_total' if instance.is_order_base_currency else 'row_total'
+        return item.get('parent_item').get(total_key) if "parent_item" in item else item.get(total_key)
 
     @staticmethod
     def _find_option_desc(item, line_item_id):
