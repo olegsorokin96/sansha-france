@@ -35,6 +35,9 @@ class SaleOrderLine(models.Model):
 
     def __find_order_item_price(self, item, order_line, instance):
         tax_type = item.get('website').tax_calculation_method
+        row_total_price = self.__get_row_total_unit_price(order_line, instance, tax_type)
+        if row_total_price is not None:
+            return row_total_price
         if tax_type == 'including_tax':
             price = self.__get_price(order_line, 'base_price_incl_tax') if instance.is_order_base_currency else self.__get_price(
                 order_line, 'price_incl_tax')
@@ -45,6 +48,20 @@ class SaleOrderLine(models.Model):
             order_line, 'original_price')
         item_price = price if price != original_price else original_price
         return item_price
+
+    def __get_row_total_unit_price(self, order_line, instance, tax_type):
+        qty = float(order_line.get('qty_ordered') or 0.0)
+        if not qty:
+            return None
+        if tax_type == 'including_tax':
+            total = self.__get_price(
+                order_line, 'base_row_total_incl_tax' if instance.is_order_base_currency else 'row_total_incl_tax')
+        else:
+            total = self.__get_price(
+                order_line, 'base_row_total' if instance.is_order_base_currency else 'row_total')
+        if total is None:
+            return None
+        return total / qty
 
     @staticmethod
     def __get_price(item, price):

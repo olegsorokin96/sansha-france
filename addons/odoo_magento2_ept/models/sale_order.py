@@ -333,8 +333,10 @@ class SaleOrder(models.Model):
             item.get('shipping_amount', 0.0))
         sale_order_id = item.get('sale_order_id')
         if incl_amount or excl_amount:
-            tax_type = self.__find_tax_type(item.get('extension_attributes'),
-                                            'apply_shipping_on_prices')
+            ext_attrs = item.get('extension_attributes', {})
+            tax_type = self.__find_tax_type(ext_attrs, 'apply_shipping_on_prices')
+            if tax_type is False and item.get('website'):
+                tax_type = item.get('website').tax_calculation_method == 'including_tax'
             price = incl_amount if tax_type else excl_amount
             default_product = self.env.ref('odoo_magento2_ept.product_product_shipping')
             product = sale_order_id.magento_instance_id.shipping_product_id or default_product
@@ -345,9 +347,11 @@ class SaleOrder(models.Model):
             order_line.create(shipping_line)
         return True
 
-    def __find_shipping_tax_percent(self, tax_details, ext_attrs):
+    def __find_shipping_tax_percent(self, tax_details, ext_attrs, fallback_tax_type=False):
         if "item_applied_taxes" in ext_attrs:
             tax_type = self.__find_tax_type(ext_attrs, 'apply_shipping_on_prices')
+            if tax_type is False:
+                tax_type = fallback_tax_type
             for order_res in ext_attrs.get("item_applied_taxes"):
                 if order_res.get('type') == "shipping" and order_res.get('applied_taxes'):
                     for tax in order_res.get('applied_taxes', list()):
@@ -371,7 +375,9 @@ class SaleOrder(models.Model):
                          'tax_percent': tax_percent})
             if 'apply_shipping_on_prices' in item.get('extension_attributes'):
                 ext_attrs = item.get('extension_attributes')
-                tax_details = self.__find_shipping_tax_percent(tax_details, ext_attrs)
+                website_tax_type = item.get('website').tax_calculation_method == 'including_tax'
+                tax_details = self.__find_shipping_tax_percent(
+                    tax_details, ext_attrs, fallback_tax_type=website_tax_type)
             # else:
             for line in item.get('items'):
                 tax_percent = line.get('tax_percent', 0.0)
