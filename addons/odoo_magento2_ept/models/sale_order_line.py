@@ -55,11 +55,9 @@ class SaleOrderLine(models.Model):
             subtotal = line.magento_row_total or 0.0
             total = line.magento_row_total_incl_tax or (subtotal + (line.magento_tax_amount or 0.0))
             tax_amount = total - subtotal
-            line.update({
-                'price_subtotal': subtotal,
-                'price_total': total,
-                'price_tax': tax_amount,
-            })
+            line.price_subtotal = subtotal
+            line.price_total = total
+            line.price_tax = tax_amount
 
     def create_order_line(self, item, instance, log_line, line_id):
         order_lines = item.get('items')
