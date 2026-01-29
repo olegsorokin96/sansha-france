@@ -457,7 +457,6 @@ class SaleOrder(models.Model):
         line_vals = order_line.prepare_order_line_vals(item, {}, rounding_product, difference, instance)
         line_vals.update({
             'name': rounding_product.name,
-            'description': rounding_product.name,
             'tax_ids': False,
             'discount': 0.0,
             'product_uom_qty': 1.0,
