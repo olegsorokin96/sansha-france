@@ -419,6 +419,24 @@ class SaleOrder(models.Model):
             total = item.get('grand_total', item.get('base_grand_total'))
         return float(total) if total is not None else False
 
+    def __get_rounding_product(self):
+        rounding_product = self.env.ref('odoo_magento2_ept.magento_product_product_rounding',
+                                        raise_if_not_found=False)
+        if rounding_product:
+            return rounding_product
+        rounding_product = self.env['product.product'].search([('default_code', '=', 'MAGENTO_ROUNDING')],
+                                                              limit=1)
+        if rounding_product:
+            return rounding_product
+        return self.env['product.product'].create({
+            'default_code': 'MAGENTO_ROUNDING',
+            'list_price': 0.0,
+            'standard_price': 0.0,
+            'type': 'service',
+            'name': 'Magento Rounding Adjustment',
+            'invoice_policy': 'order',
+        })
+
     def __apply_magento_rounding_adjustment(self, item, instance):
         sale_order_id = item.get('sale_order_id')
         if not sale_order_id:
@@ -431,13 +449,10 @@ class SaleOrder(models.Model):
             amount_all()
         currency = sale_order_id.currency_id or sale_order_id.pricelist_id.currency_id or \
             sale_order_id.company_id.currency_id
-        difference = magento_total - sale_order_id.amount_total
+        difference = currency.round(magento_total - sale_order_id.amount_total)
         if float_is_zero(difference, precision_rounding=currency.rounding):
             return False
-        rounding_product = self.env.ref('odoo_magento2_ept.magento_product_product_rounding',
-                                        raise_if_not_found=False)
-        if not rounding_product:
-            return False
+        rounding_product = self.__get_rounding_product()
         order_line = self.env['sale.order.line']
         line_vals = order_line.prepare_order_line_vals(item, {}, rounding_product, difference, instance)
         line_vals.update({
