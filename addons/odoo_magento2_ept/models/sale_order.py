@@ -8,6 +8,7 @@ import pytz
 import time
 from datetime import datetime, timedelta
 from odoo import models, fields, api, _
+from odoo.tools.float_utils import float_is_zero
 from odoo.exceptions import UserError
 from .api_request import req
 from dateutil import parser
@@ -157,6 +158,7 @@ class SaleOrder(models.Model):
                         order_line.create_order_line(item, instance, log_line, line_id)
                         self.__create_discount_order_line(item, instance)
                         self.__create_shipping_order_line(item, instance)
+                        self.__apply_magento_rounding_adjustment(item, instance)
                         self.__process_order_workflow(item, log_line)
         return is_processed
 
@@ -407,6 +409,48 @@ class SaleOrder(models.Model):
             if item.get('discount_tax'):
                 line.update({'tax_ids': [(6, 0, item.get('discount_tax'))]})
             order_line.create(line)
+        return True
+
+    @staticmethod
+    def __get_magento_order_total(item, instance):
+        if instance.is_order_base_currency:
+            total = item.get('base_grand_total', item.get('grand_total'))
+        else:
+            total = item.get('grand_total', item.get('base_grand_total'))
+        return float(total) if total is not None else False
+
+    def __apply_magento_rounding_adjustment(self, item, instance):
+        sale_order_id = item.get('sale_order_id')
+        if not sale_order_id:
+            return False
+        magento_total = self.__get_magento_order_total(item, instance)
+        if magento_total is False:
+            return False
+        amount_all = getattr(sale_order_id, "_amount_all", None)
+        if amount_all:
+            amount_all()
+        currency = sale_order_id.currency_id or sale_order_id.pricelist_id.currency_id or \
+            sale_order_id.company_id.currency_id
+        difference = magento_total - sale_order_id.amount_total
+        if float_is_zero(difference, precision_rounding=currency.rounding):
+            return False
+        rounding_product = self.env.ref('odoo_magento2_ept.magento_product_product_rounding',
+                                        raise_if_not_found=False)
+        if not rounding_product:
+            return False
+        order_line = self.env['sale.order.line']
+        line_vals = order_line.prepare_order_line_vals(item, {}, rounding_product, difference, instance)
+        line_vals.update({
+            'name': rounding_product.name,
+            'description': rounding_product.name,
+            'tax_ids': False,
+            'discount': 0.0,
+            'product_uom_qty': 1.0,
+            'price_unit': difference,
+        })
+        order_line.create(line_vals)
+        if amount_all:
+            amount_all()
         return True
 
     @staticmethod
