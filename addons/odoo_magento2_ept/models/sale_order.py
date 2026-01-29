@@ -338,26 +338,11 @@ class SaleOrder(models.Model):
             price = incl_amount if tax_type else excl_amount
             default_product = self.env.ref('odoo_magento2_ept.product_product_shipping')
             product = sale_order_id.magento_instance_id.shipping_product_id or default_product
-            existing_line = sale_order_id.order_line.filtered(
-                lambda line: line.is_delivery and line.product_id == product
-            )[:1]
-            shipping_line_vals = order_line.prepare_order_line_vals(item, {}, product, price, instance)
-            shipping_line_vals.update({'is_delivery': True})
-            shipping_tax_amount = 0.0
+            shipping_line = order_line.prepare_order_line_vals(item, {}, product, price, instance)
+            shipping_line.update({'is_delivery': True})
             if item.get('shipping_tax'):
-                shipping_tax_amount = float(item.get('base_shipping_tax_amount', 0.0)) if instance.is_order_base_currency else float(
-                    item.get('shipping_tax_amount', 0.0))
-            shipping_line_vals.update({
-                'magento_row_total': excl_amount,
-                'magento_row_total_incl_tax': incl_amount or (excl_amount + shipping_tax_amount),
-                'magento_tax_amount': shipping_tax_amount,
-            })
-            if item.get('shipping_tax') and not tax_type:
-                shipping_line_vals.update({'tax_ids': [(6, 0, item.get('shipping_tax'))]})
-            if existing_line:
-                existing_line.write(shipping_line_vals)
-            else:
-                order_line.create(shipping_line_vals)
+                shipping_line.update({'tax_ids': [(6, 0, item.get('shipping_tax'))]})
+            order_line.create(shipping_line)
         return True
 
     def __find_shipping_tax_percent(self, tax_details, ext_attrs):

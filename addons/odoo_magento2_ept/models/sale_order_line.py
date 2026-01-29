@@ -12,52 +12,10 @@ class SaleOrderLine(models.Model):
     """
     _inherit = 'sale.order.line'
 
-    magento_row_total = fields.Monetary(
-        string="Magento Row Total",
-        currency_field='currency_id',
-        help="Row total from Magento (excluding tax)."
-    )
-    magento_row_total_incl_tax = fields.Monetary(
-        string="Magento Row Total Incl. Tax",
-        currency_field='currency_id',
-        help="Row total from Magento (including tax)."
-    )
-    magento_tax_amount = fields.Monetary(
-        string="Magento Tax Amount",
-        currency_field='currency_id',
-        help="Tax amount from Magento for this line."
-    )
-
     magento_sale_order_line_ref = fields.Char(
         string="Magento Sale Order Line Reference",
         help="Magento Sale Order Line Reference"
     )
-
-    @api.depends(
-        'product_uom_qty',
-        'discount',
-        'price_unit',
-        'tax_id',
-        'magento_row_total',
-        'magento_row_total_incl_tax',
-        'magento_tax_amount',
-    )
-    def _compute_amount(self):
-        magento_lines = self.filtered(
-            lambda line: line.order_id.magento_instance_id and (
-                line.magento_row_total or line.magento_row_total_incl_tax or line.magento_tax_amount
-            )
-        )
-        remaining_lines = self - magento_lines
-        if remaining_lines:
-            super(SaleOrderLine, remaining_lines)._compute_amount()
-        for line in magento_lines:
-            subtotal = line.magento_row_total or 0.0
-            total = line.magento_row_total_incl_tax or (subtotal + (line.magento_tax_amount or 0.0))
-            tax_amount = total - subtotal
-            line.price_subtotal = subtotal
-            line.price_total = total
-            line.price_tax = tax_amount
 
     def create_order_line(self, item, instance, log_line, line_id):
         order_lines = item.get('items')
@@ -70,9 +28,6 @@ class SaleOrderLine(models.Model):
             customer_option = self.__get_custom_option(item, line)
             line_vals = self.with_context(custom_options=customer_option).prepare_order_line_vals(
                 item, line, product, price, instance)
-            magento_amounts = self.__get_magento_amounts(line, instance)
-            if magento_amounts:
-                line_vals.update(magento_amounts)
             order_line = self.create(line_vals)
             order_line.with_context(round=rounding)._compute_amount()
             self.__create_line_desc_note(customer_option, item.get('sale_order_id'))
@@ -80,14 +35,6 @@ class SaleOrderLine(models.Model):
 
     def __find_order_item_price(self, item, order_line, instance):
         tax_type = item.get('website').tax_calculation_method
-        row_total = self.__get_row_total(order_line, instance, tax_type)
-        if row_total:
-            qty = float(order_line.get('qty_ordered') or 1.0)
-            discount_amount = order_line.get('base_discount_amount') if instance.is_order_base_currency else \
-                order_line.get('discount_amount')
-            if discount_amount:
-                row_total += abs(float(discount_amount))
-            return row_total / qty
         if tax_type == 'including_tax':
             price = self.__get_price(order_line, 'base_price_incl_tax') if instance.is_order_base_currency else self.__get_price(
                 order_line, 'price_incl_tax')
@@ -102,34 +49,6 @@ class SaleOrderLine(models.Model):
     @staticmethod
     def __get_price(item, price):
         return item.get('parent_item').get(price) if "parent_item" in item else item.get(price)
-
-    @staticmethod
-    def __get_row_total(item, instance, tax_type):
-        if tax_type == 'including_tax':
-            total_key = 'base_row_total_incl_tax' if instance.is_order_base_currency else 'row_total_incl_tax'
-        else:
-            total_key = 'base_row_total' if instance.is_order_base_currency else 'row_total'
-        return item.get('parent_item').get(total_key) if "parent_item" in item else item.get(total_key)
-
-    @staticmethod
-    def __get_magento_amounts(order_line, instance):
-        if instance.is_order_base_currency:
-            row_total = order_line.get('base_row_total', 0.0)
-            row_total_incl = order_line.get('base_row_total_incl_tax', 0.0)
-            tax_amount = order_line.get('base_tax_amount', 0.0)
-        else:
-            row_total = order_line.get('row_total', 0.0)
-            row_total_incl = order_line.get('row_total_incl_tax', 0.0)
-            tax_amount = order_line.get('tax_amount', 0.0)
-        if not row_total and not row_total_incl and not tax_amount:
-            return {}
-        if not row_total_incl:
-            row_total_incl = row_total + tax_amount
-        return {
-            'magento_row_total': row_total,
-            'magento_row_total_incl_tax': row_total_incl,
-            'magento_tax_amount': tax_amount,
-        }
 
     @staticmethod
     def _find_option_desc(item, line_item_id):
