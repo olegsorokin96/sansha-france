@@ -343,6 +343,15 @@ class SaleOrder(models.Model):
             )[:1]
             shipping_line_vals = order_line.prepare_order_line_vals(item, {}, product, price, instance)
             shipping_line_vals.update({'is_delivery': True})
+            shipping_tax_amount = 0.0
+            if item.get('shipping_tax'):
+                shipping_tax_amount = float(item.get('base_shipping_tax_amount', 0.0)) if instance.is_order_base_currency else float(
+                    item.get('shipping_tax_amount', 0.0))
+            shipping_line_vals.update({
+                'magento_row_total': excl_amount,
+                'magento_row_total_incl_tax': incl_amount or (excl_amount + shipping_tax_amount),
+                'magento_tax_amount': shipping_tax_amount,
+            })
             if item.get('shipping_tax') and not tax_type:
                 shipping_line_vals.update({'tax_ids': [(6, 0, item.get('shipping_tax'))]})
             if existing_line:
