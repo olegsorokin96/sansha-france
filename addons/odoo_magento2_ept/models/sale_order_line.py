@@ -38,6 +38,10 @@ class SaleOrderLine(models.Model):
         row_total = self.__get_row_total(order_line, instance, tax_type)
         if row_total:
             qty = float(order_line.get('qty_ordered') or 1.0)
+            discount_amount = order_line.get('base_discount_amount') if instance.is_order_base_currency else \
+                order_line.get('discount_amount')
+            if discount_amount:
+                row_total += abs(float(discount_amount))
             return row_total / qty
         if tax_type == 'including_tax':
             price = self.__get_price(order_line, 'base_price_incl_tax') if instance.is_order_base_currency else self.__get_price(
