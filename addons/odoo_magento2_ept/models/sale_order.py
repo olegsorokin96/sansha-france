@@ -364,12 +364,42 @@ class SaleOrder(models.Model):
             )
 
             price = incl_amount if tax_type else excl_amount
-            default_product = self.env.ref('odoo_magento2_ept.product_product_shipping')
-            product = sale_order_id.magento_instance_id.shipping_product_id or default_product
-            shipping_line = order_line.prepare_order_line_vals(item, {}, product, price, instance)
-            shipping_line.update({'is_delivery': True})
+
+            # Magento already provides shipping price including tax.
+            # Odoo expects price_unit excluding tax, therefore convert
+            # the shipping amount only for the delivery line.
+            if tax_type and item.get('shipping_tax'):
+                taxes = self.env['account.tax'].browse(item.get('shipping_tax'))
+                if taxes:
+                    tax_percent = sum(taxes.mapped('amount'))
+                    if tax_percent:
+                        price = price / (1 + tax_percent / 100.0)
+
+            default_product = self.env.ref(
+                'odoo_magento2_ept.product_product_shipping'
+            )
+            product = (
+                sale_order_id.magento_instance_id.shipping_product_id
+                or default_product
+            )
+
+            shipping_line = order_line.prepare_order_line_vals(
+                item,
+                {},
+                product,
+                price,
+                instance,
+            )
+
+            shipping_line.update({
+                'is_delivery': True,
+            })
+
             if item.get('shipping_tax'):
-                shipping_line.update({'tax_ids': [(6, 0, item.get('shipping_tax'))]})
+                shipping_line.update({
+                    'tax_ids': [(6, 0, item.get('shipping_tax'))]
+                })
+
             order_line.create(shipping_line)
         return True
 
