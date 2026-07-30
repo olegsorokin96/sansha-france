@@ -157,8 +157,26 @@ class SaleOrder(models.Model):
                         order_line.create_order_line(item, instance, log_line, line_id)
                         self.__create_discount_order_line(item, instance)
                         self.__create_shipping_order_line(item, instance)
+                        self.__remove_magento_rounding_lines(item)
                         self.__process_order_workflow(item, log_line)
         return is_processed
+
+    def __remove_magento_rounding_lines(self, item):
+        sale_order_id = item.get('sale_order_id')
+        if not sale_order_id:
+            return False
+        rounding_product = self.env.ref('odoo_magento2_ept.magento_product_product_rounding',
+                                        raise_if_not_found=False)
+        if not rounding_product:
+            rounding_product = self.env['product.product'].search(
+                [('default_code', '=', 'MAGENTO_ROUNDING')], limit=1)
+        if not rounding_product:
+            return False
+        rounding_lines = sale_order_id.order_line.filtered(
+            lambda line: line.product_id.id == rounding_product.id)
+        if rounding_lines:
+            rounding_lines.unlink()
+        return True
 
     @staticmethod
     def __find_order_warehouse(item, log_line, line_id):
@@ -333,8 +351,18 @@ class SaleOrder(models.Model):
             item.get('shipping_amount', 0.0))
         sale_order_id = item.get('sale_order_id')
         if incl_amount or excl_amount:
-            tax_type = self.__find_tax_type(item.get('extension_attributes'),
-                                            'apply_shipping_on_prices')
+            tax_type = self.__find_tax_type(
+                item.get('extension_attributes'),
+                'apply_shipping_on_prices'
+            )
+
+            _logger.info(
+                "Shipping incl=%s excl=%s tax_type=%s",
+                incl_amount,
+                excl_amount,
+                tax_type,
+            )
+
             price = incl_amount if tax_type else excl_amount
             default_product = self.env.ref('odoo_magento2_ept.product_product_shipping')
             product = sale_order_id.magento_instance_id.shipping_product_id or default_product
