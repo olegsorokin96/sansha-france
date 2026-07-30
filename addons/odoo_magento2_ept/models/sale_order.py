@@ -351,8 +351,18 @@ class SaleOrder(models.Model):
             item.get('shipping_amount', 0.0))
         sale_order_id = item.get('sale_order_id')
         if incl_amount or excl_amount:
-            tax_type = self.__find_tax_type(item.get('extension_attributes'),
-                                            'apply_shipping_on_prices')
+            tax_type = self.__find_tax_type(
+                item.get('extension_attributes'),
+                'apply_shipping_on_prices'
+            )
+
+            _logger.info(
+                "Shipping incl=%s excl=%s tax_type=%s",
+                incl_amount,
+                excl_amount,
+                tax_type,
+            )
+
             price = incl_amount if tax_type else excl_amount
             default_product = self.env.ref('odoo_magento2_ept.product_product_shipping')
             product = sale_order_id.magento_instance_id.shipping_product_id or default_product
