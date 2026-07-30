@@ -129,7 +129,7 @@ class MagentoResPartnerEpt(models.Model):
                         # We will delete the company_name key form the dictionary,
                         # If we pass that key then odoo will update the value of company_name to False.
                         values.pop('company_name')
-                    partner = partner.create(values)
+                    partner = parent_partner
                     if vat:
                         partner.write({'vat': vat})
                     if company:
@@ -191,7 +191,7 @@ class MagentoResPartnerEpt(models.Model):
                         # We will delete the company_name key form the dictionary,
                         # If we pass that key then odoo will update the value of company_name to False.
                         values.pop('company_name')
-                    partner = partner.create(values)
+                    partner = parent_partner
                     if vat:
                         partner.write({'vat': vat})
                     if company:
@@ -248,7 +248,7 @@ class MagentoResPartnerEpt(models.Model):
             if 'default_shipping' in list(data.keys()):
                 del data['default_shipping']
             values = self._prepare_partner_values(data, instance)
-            partner = partner.create(values)
+            partner = parent_partner
         return partner
 
     @staticmethod
