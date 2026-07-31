@@ -248,7 +248,8 @@ class MagentoResPartnerEpt(models.Model):
             if 'default_shipping' in list(data.keys()):
                 del data['default_shipping']
             values = self._prepare_partner_values(data, instance)
-            partner = parent_partner
+            values.update(self._find_state_country(data))
+            partner = self.env['res.partner'].create(values)
         return partner
 
     @staticmethod
