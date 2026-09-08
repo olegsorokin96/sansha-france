@@ -111,7 +111,18 @@ class MagentoOrderDataQueueLineEpt(models.Model):
                 m_product = self.env['magento.product.product']
                 p_items = m_product.with_context(is_order=True).get_products(instance, item_ids, line)
 
-                order_item = self.env['sale.order.line'].find_order_item(item, instance, log_line, line.id)
+                # When Emipro's Extended Bundle Products Order module is installed,
+                # bundle parent SKUs are intentionally not required to exist in Odoo at
+                # this preliminary validation stage. The extended module creates/handles
+                # the bundle parent and its phantom BoM later during sale order creation.
+                bundle_module_installed = bool(self.env['ir.module.module'].sudo().search_count([
+                    ('name', '=', 'odoo_magento2_extended_bundle_products_order_ept'),
+                    ('state', '=', 'installed'),
+                ]))
+                order_line_model = self.env['sale.order.line']
+                if bundle_module_installed:
+                    order_line_model = order_line_model.with_context(bundle_ept=True)
+                order_item = order_line_model.find_order_item(item, instance, log_line, line.id)
                 if not order_item:
                     if p_items:
                         p_queue = self.env['sync.import.magento.product.queue.line']
