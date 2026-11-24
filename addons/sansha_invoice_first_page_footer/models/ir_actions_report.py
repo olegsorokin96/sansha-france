@@ -105,6 +105,27 @@ def _footer(footer, compact=False, total=None, offset=0):
         if compact:
             node.clear()
 
+    if not compact:
+        # Pin legal typography instead of inheriting incidental footer/body
+        # styles. A separate, larger page-one margin is reserved below.
+        style = etree.Element("style", type="text/css")
+        style.text = """
+            .sansha_invoice_first_page_footer,
+            .sansha_invoice_first_page_footer * {
+                font-size: 7pt !important;
+                line-height: 1.2 !important;
+                white-space: normal !important;
+            }
+            .sansha_invoice_first_page_footer p {
+                margin-top: 0 !important;
+                margin-bottom: 3pt !important;
+            }
+            .sansha_invoice_first_page_footer p:last-child {
+                margin-bottom: 0 !important;
+            }
+        """
+        tree.find("head").append(style)
+
     if total is not None:
         # Avoid subst() replacing these counters with chunk-local page numbers.
         for node in tree.iter():
@@ -206,12 +227,20 @@ class IrActionsReport(models.Model):
         if len(bodies) != 1 or not footer:
             raise UserError(_("Sansha pagination requires one invoice body and its Bold footer."))
 
+        paperformat = self._get_report(report_ref).get_paperformat()
+        original_bottom = arguments.get(
+            "data-report-margin-bottom", paperformat.margin_bottom,
+        )
+        # A readable legal block needs more room on page one only. Do not
+        # alter the shared A4 record or the continuation's 12 mm margin.
+        arguments["data-report-margin-bottom"] = max(float(original_bottom), 70)
+
         try:
             body = bodies[0]
             table = _table(_parse(body))
             rows = _rows(table)
             full_footer = _footer(footer)
-            # Reuse the existing paper format for page one (currently 40 mm).
+            # Render page one with the readable legal block's reserved margin.
             original = render(
                 [body], footer=full_footer,
                 specific_paperformat_args=arguments, **common,
@@ -240,7 +269,6 @@ class IrActionsReport(models.Model):
             # The original first page starts with the address block's own
             # spacing. After removing it the table needs explicit clearance
             # below Bold's large logo and company header.
-            paperformat = self._get_report(report_ref).get_paperformat()
             original_top = arguments.get(
                 "data-report-margin-top", paperformat.margin_top,
             )
