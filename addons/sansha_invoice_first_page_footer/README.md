@@ -4,7 +4,7 @@ The legal text remains at the bottom of page one. The continuation uses a
 12 mm bottom margin, so invoice lines can occupy the former footer area.
 Continuation top margins add 10 mm to clear the existing Bold logo/header.
 The legal block uses explicit 7 pt text, 1.2 line spacing and 3 pt paragraph
-spacing. Page one reserves at least 70 mm at the bottom for this block.
+spacing. Page one reserves at least 40 mm at the bottom for this block.
 Existing QWeb views and shared A4 paper formats are not modified.
 
 ## Install on staging
@@ -23,7 +23,7 @@ Existing QWeb views and shared A4 paper formats are not modified.
 Prerequisites: the existing Sansha Bold v2 template must still contain the
 `sansha_invoice_first_page_footer` class around `company.report_footer`.
 Leave the shared A4 bottom margin unchanged (currently 40 mm); this addon
-overrides page one to at least 70 mm and continuation pages to 12 mm at render
+overrides page one to at least 40 mm and continuation pages to 12 mm at render
 time without writing either value to the shared paper format.
 
 By default this applies only to account.move reports named

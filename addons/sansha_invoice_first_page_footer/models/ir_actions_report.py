@@ -231,9 +231,10 @@ class IrActionsReport(models.Model):
         original_bottom = arguments.get(
             "data-report-margin-bottom", paperformat.margin_bottom,
         )
-        # A readable legal block needs more room on page one only. Do not
-        # alter the shared A4 record or the continuation's 12 mm margin.
-        arguments["data-report-margin-bottom"] = max(float(original_bottom), 70)
+        # Measured Sansha legal text fits within 40 mm with the pinned
+        # typography. Keep only that space, not the previous 70 mm reserve.
+        # Do not alter the shared A4 record or continuation's 12 mm margin.
+        arguments["data-report-margin-bottom"] = max(float(original_bottom), 40)
 
         try:
             body = bodies[0]
