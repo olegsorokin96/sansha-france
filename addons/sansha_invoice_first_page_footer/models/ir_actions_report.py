@@ -237,6 +237,14 @@ class IrActionsReport(models.Model):
             first_body, rest_body = _split_body(body, count)
             small_arguments = dict(arguments)
             small_arguments["data-report-margin-bottom"] = 12
+            # The original first page starts with the address block's own
+            # spacing. After removing it the table needs explicit clearance
+            # below Bold's large logo and company header.
+            paperformat = self._get_report(report_ref).get_paperformat()
+            original_top = arguments.get(
+                "data-report-margin-top", paperformat.margin_top,
+            )
+            small_arguments["data-report-margin-top"] = float(original_top) + 10
             compact_footer = _footer(footer, compact=True)
             rest_pdf = render(
                 [rest_body], footer=compact_footer,

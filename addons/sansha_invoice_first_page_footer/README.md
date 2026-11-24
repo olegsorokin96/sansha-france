@@ -2,6 +2,7 @@
 
 The legal text remains at the bottom of page one. The continuation uses a
 12 mm bottom margin, so invoice lines can occupy the former footer area.
+Continuation top margins add 10 mm to clear the existing Bold logo/header.
 Existing QWeb views and shared A4 paper formats are not modified.
 
 ## Install on staging
